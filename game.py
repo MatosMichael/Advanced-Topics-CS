@@ -2,29 +2,37 @@ from logging import raiseExceptions
 import pygame
 import sys
 import random
-
+from datetime import datetime
 pygame.init()
-
+ 
 width = 600
 height = 800
-
-
+ 
+ 
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 player_size = 20
 goal_size = 50
 player = pygame.Rect(275, height - player_size, player_size, player_size)
+ 
 goal = pygame.Rect(random.randrange(width - goal_size), 0, goal_size, goal_size)
 screen = pygame.display.set_mode((width, height))
 h_walls = [(0, 0, width, 0), (0, height, width, height)]
 v_walls = [(0, 0, 0, height), (width, 0, width, height)]
-
+ 
 game_over = False
-
+start_time = datetime.now() 
 while True:
     if game_over:
         #PLACE Text HERE
-        raise Exception("You Won!")
+ 
+        time_delta = datetime.now() - start_time
+        font = pygame.font.SysFont(None, 24)
+        img = font.render("You Won!", True, GREEN)
+        screen.blit(img, (width/2, 50))
+        if time_delta.total_seconds() >= 5:
+            break
+       
     else:
         keys = pygame.key.get_pressed()
         if keys[pygame.K_LEFT]:
@@ -39,15 +47,15 @@ while True:
         if keys[pygame.K_DOWN]:
             if player.bottom not in [i[1] for i in h_walls]:
                 player = player.move(0, 1)
-
-        
-
+ 
+       
+ 
         if player.colliderect(goal):
             game_over = True
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 sys.exit()
-
+ 
         screen.fill((0, 0, 0))
         pygame.draw.rect(screen, GREEN, goal)
         pygame.draw.rect(screen, RED, player)
