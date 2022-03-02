@@ -3,80 +3,82 @@ from random import randrange
 import random
 import pygame
 import sys
+import pdb
 pygame.init()
 
 width = 500
 height = 500
 room_size = 50
-adjacent = []
-grid = [[{
-    "visited": False,
-    "north": True,
-    "south": True,
-    "east": True,
-    "west": True
-} for i in range(width//room_size)] for j in range(height//room_size)]
+num_rooms = (width*height // room_size**2)
+num_columns = width // room_size
+num_rows = height // room_size
+def generate_walls(index):
+    ret = []
 
+    cell_x = index
+    cell_col = 0
+    while cell_x >= num_columns:
+        cell_x -= num_columns
+        cell_col += 1
 
-def add_adjacent(x, y):
-    if (x >= 0) and (y >= 0) and (y < len(grid)) and (x < len(grid[y])) and (grid[y][x].get("visited") == False):
-        adjacent.append([x, y])
+    cell_y = index
+    cell_row = 0
+    while cell_y >= num_rows:
+        cell_y -= num_rows
+        cell_row += 1
 
+    cell_x *= room_size
+    cell_y = cell_row * room_size
 
-def mark(x, y):
-    grid[y][x]["visited"] = True
-    add_adjacent(x-1, y)
-    add_adjacent(x+1, y)
-    add_adjacent(x, y-1)
-    add_adjacent(x, y+1)
+    # top wall
+    ret.append({
+        "cells": [index, index - num_columns],
+        "points": [(cell_x, cell_y), (cell_x + room_size, cell_y)]
+    })
+    #   bottom wall
+    ret.append({
+        "cells": [index, index + num_columns],
+        "points": [(cell_x, cell_y + room_size), (cell_x + room_size, cell_y + room_size)]
+    })
+    # left wall
+    ret.append({
+        "cells": [index - 1, index],
+        "points": [(cell_x , cell_y), (cell_x, cell_y + room_size)]
+    })
+    # right wall
+    ret.append({
+        "cells": [index + 1, index],
+        "points": [(cell_x + room_size, cell_y), (cell_x + room_size, cell_y + room_size)]
+    })
+    
+    return ret
 
+_walls = [generate_walls(i) for i in range(num_rooms)]
+walls = [wall for sublist in _walls for wall in sublist]
 
-screen = pygame.display.set_mode((width, height))
-x, y = random.randrange(width//room_size), random.randrange(height//room_size)
-mark(x, y)
-while True:
-    if len(adjacent):
-        next = random.randrange(len(adjacent))
-        [nx, ny] = adjacent[next]
-        del adjacent[next]
-        mark(nx, ny)
-        try:
-            if ny > y:
-                grid[y][x]["north"] = False
-            elif ny < y:
-                grid[y][x]["south"] = False
-            elif nx > x:
-                grid[y][x]["east"] = False
+adjacent = [0]
+
+def add_adjacent(i):
+    for wall in walls:
+        if (wall["cells"].count(i) > 0):
+            if wall["cells"].index(i) == 0:
+                prox = (wall["cells"][1])
             else:
-                grid[y][x]["west"] = False
-        except IndexError:
-            print(x)
-            print(y)
-        x, y = nx, ny
-    for i in range(len(grid)):
-        for j in range(len(grid[i])):
-            if grid[i][j]["visited"] == True:
-                left = i * room_size
-                top = j * room_size
-                north, south, east, west, last = 0, 0, 0, 0, 0
-                if i == len(grid[i]) - 1:
-                    last = 1
-                if grid[i][j]["north"] == True:
-                    north = 1
-                    # pygame.draw.line(screen, (0,0,0), (left, top), (left + room_size, top))
-                if grid[i][j]["south"] == True:
-                    south = 1
-                    # pygame.draw.line(screen, (0,0,0), (left, top + room_size), (left + room_size, top + room_size))
-                if grid[i][j]["east"] == True:
-                    east = 1
-                    # pygame.draw.line(screen, (0,0,0), (left + room_size, top), (left + room_size, top + room_size))
-                if grid[i][j]["west"] == True:
-                    west = 1
-                    # pygame.draw.line(screen, (0,0,0), (left, top), (left, top + room_size))
-                pygame.draw.rect(
-                    screen, (255, 255, 255), (left + west, top + north, room_size - last - east, room_size - south))
-
-
+                prox = (wall["cells"][0])
+            if prox > 0 and adjacent.count(prox) == 0:
+                adjacent.append(prox)
+current = 0
+screen = pygame.display.set_mode((width, height))
+while True:
+    screen.fill("black")
+    add_adjacent(current)
+    if len(adjacent):
+        adjacent.remove(current)
+        prox = adjacent[random.randrange(len(adjacent))]
+        walls = [wall for wall in walls if wall["cells"].count(prox) == 0 or wall["cells"].count(current) == 0]
+        current = prox
+    for wall in walls:
+        pygame.draw.line(screen, (255,255,255), wall["points"][0], wall["points"][1])
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             sys.exit()
